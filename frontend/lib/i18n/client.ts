@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useCookies } from "react-cookie";
 import { createInstance } from "i18next";
 import { initReactI18next, useTranslation as useTranslationOrg } from "react-i18next";
@@ -33,23 +33,22 @@ i18n
 
 export function useTranslation(lng: string = fallbackLng, ns = "common") {
   const [cookies, setCookie] = useCookies([cookieName]);
-  const [activeLng, setActiveLng] = useState(i18n.resolvedLanguage || lng);
 
   const ret = useTranslationOrg(ns);
 
+  // Ensure i18next language matches the requested lng
   useEffect(() => {
-    if (activeLng === lng) return;
-
-    setActiveLng(lng);
+    if (!lng || i18n.resolvedLanguage === lng) return;
     i18n.changeLanguage(lng);
-  }, [lng, activeLng]);
+  }, [lng]);
 
+  // Persist language choice to cookie (for next reload)
   useEffect(() => {
     if (!lng) return; // guard against empty language values
     if (cookies[cookieName] === lng) return;
 
     setCookie(cookieName, lng, { path: "/" });
-  }, [lng, setCookie]);
+  }, [lng, cookies, setCookie]);
 
   return ret;
 }

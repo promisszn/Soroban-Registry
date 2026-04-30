@@ -55,7 +55,7 @@ function getBadgeConfig(
 
 interface VerificationBadgeProps {
   status: VerificationStatus;
-  level?: any;
+  level?: string;
   size?: "sm" | "md";
 }
 
