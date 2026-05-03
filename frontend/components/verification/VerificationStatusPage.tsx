@@ -13,8 +13,6 @@ import {
   VerificationWorkflow,
 } from "@/components/verification/VerificationInsights";
 import { useToast } from "@/hooks/useToast";
-
-export const dynamic = "force-dynamic";
 import {
   getVerificationStatus,
   retryVerification,

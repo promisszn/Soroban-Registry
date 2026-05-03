@@ -1,4 +1,4 @@
-import VerifyContractPage from "@/pages/VerifyContract";
+import VerifyContractPage from "@/components/verification/VerifyContractPage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

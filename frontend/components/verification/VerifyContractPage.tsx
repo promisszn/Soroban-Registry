@@ -13,8 +13,6 @@ import { useToast } from "@/hooks/useToast";
 import { useVerificationFlow } from "@/hooks/useVerificationFlow";
 import type { VerificationDocument } from "@/types/verification";
 
-export const dynamic = "force-dynamic";
-
 export default function VerifyContractPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,8 +70,7 @@ export default function VerifyContractPage() {
               Verify Contract
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Submit a contract for verification and upload supporting
-              documents.
+              Submit a contract for verification and upload supporting documents.
             </p>
           </div>
         </div>
@@ -148,7 +145,9 @@ export default function VerifyContractPage() {
                         const request = await submit();
                         showSuccess("Verification submitted.");
                         router.push(
-                          `/verification-status?id=${encodeURIComponent(request.id)}`,
+                          `/verification-status?id=${encodeURIComponent(
+                            request.id,
+                          )}`,
                         );
                       } catch (err: unknown) {
                         showError(

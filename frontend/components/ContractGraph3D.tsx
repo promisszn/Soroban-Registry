@@ -57,6 +57,8 @@ export default function ContractGraph3D({
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;

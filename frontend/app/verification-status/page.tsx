@@ -1,4 +1,4 @@
-import VerificationStatusPage from "@/pages/VerificationStatus";
+import VerificationStatusPage from "@/components/verification/VerificationStatusPage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
