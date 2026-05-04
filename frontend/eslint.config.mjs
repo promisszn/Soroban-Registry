@@ -1,7 +1,17 @@
-import tsParser from "@typescript-eslint/parser";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
 
 /** @type {import('eslint').Linter.Config[]} */
 const eslintConfig = [
+  // Ignore non-source directories
   {
     ignores: [
       ".next/**",
@@ -14,17 +24,10 @@ const eslintConfig = [
       "node_modules/**",
     ],
   },
-  // TypeScript + TSX files — use the TS parser
+  // eslint-config-next already bundles @typescript-eslint/parser + react rules
+  ...compat.extends("next/core-web-vitals"),
+  // Custom rule overrides
   {
-    files: ["**/*.{ts,tsx,mts,cts}"],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        ecmaFeatures: { jsx: true },
-      },
-    },
     rules: {
       "no-unused-vars": [
         "warn",
@@ -37,23 +40,6 @@ const eslintConfig = [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "no-undef": "off",
-      "no-console": "warn",
-    },
-  },
-  // Plain JS + JSX files
-  {
-    files: ["**/*.{js,jsx,mjs,cjs}"],
-    languageOptions: {
-      parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        ecmaFeatures: { jsx: true },
-      },
-    },
-    rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
-      "no-undef": "off",
       "no-console": "warn",
     },
   },
