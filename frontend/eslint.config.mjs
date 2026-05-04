@@ -1,16 +1,9 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextPlugin from "eslint-config-next";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
+/** @type {import('eslint').Linter.Config[]} */
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // eslint-config-next flat config — includes core-web-vitals + typescript rules
+  ...(Array.isArray(nextPlugin) ? nextPlugin : [nextPlugin]),
   {
     ignores: [
       ".next/**",
@@ -25,7 +18,7 @@ const eslintConfig = [
   {
     rules: {
       // Unused vars are a cleanup task, not a build blocker.
-      // Prefix with _ to intentionally suppress (e.g. _unusedParam).
+      // Prefix variable with _ to intentionally suppress (e.g. _unusedParam).
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {
@@ -37,8 +30,7 @@ const eslintConfig = [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "no-unused-vars": "off", // defer entirely to @typescript-eslint/no-unused-vars
-      // aria-expanded on input[type=text] is a false positive in this codebase
+      "no-unused-vars": "off",
       "jsx-a11y/role-supports-aria-props": "warn",
     },
   },
