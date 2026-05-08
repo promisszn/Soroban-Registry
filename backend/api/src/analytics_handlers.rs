@@ -13,7 +13,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::{header, HeaderValue, StatusCode},
-    response::Response,
+    response::{Response, IntoResponse},
     Json,
 };
 use chrono::{Datelike, Duration, NaiveDate, Utc};
@@ -32,7 +32,7 @@ use crate::{
 // ── Response types ────────────────────────────────────────────────────────────
 
 /// One data-point in the 7-day interaction trend.
-#[derive(Debug, Serialize, utoipa::ToSchema)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct TrendPoint {
     pub date: NaiveDate,
     /// Total interactions recorded on this day across all interaction types.
@@ -198,7 +198,7 @@ impl TimeSeriesGroupBy {
             "network" => Ok(Self::Network),
             "category" => Ok(Self::Category),
             "publisher" => Ok(Self::Publisher),
-            _ => Err(ApiError::bad_request(
+            _ => Err(ApiError::bad_request_with(
                 "InvalidGroupBy",
                 "group_by must be one of: network, category, publisher",
             )),
@@ -269,7 +269,7 @@ fn db_err(op: &str, err: sqlx::Error) -> ApiError {
 
 fn parse_contract_id(id: &str) -> ApiResult<Uuid> {
     Uuid::parse_str(id).map_err(|_| {
-        ApiError::bad_request(
+        ApiError::bad_request_with(
             "InvalidContractId",
             format!("Invalid contract ID format: {}", id),
         )

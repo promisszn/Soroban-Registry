@@ -215,10 +215,10 @@ pub async fn submit_attestation(
     // 2. Verify signature
     if let Some(sig_str) = &req.signature {
         let decoded_sig = BASE64.decode(sig_str).map_err(|_| {
-            ApiError::bad_request("InvalidSignature", "Failed to decode base64 signature")
+            ApiError::bad_request_with("InvalidSignature", "Failed to decode base64 signature")
         })?;
         let signature = Signature::from_slice(&decoded_sig)
-            .map_err(|_| ApiError::bad_request("InvalidSignature", "Invalid signature format"))?;
+            .map_err(|_| ApiError::bad_request_with("InvalidSignature", "Invalid signature format"))?;
 
         let public_key_result = StrKeyPublicKey::from_string(&validator_address);
         let public_key_bytes = match public_key_result {

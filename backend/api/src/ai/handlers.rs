@@ -219,33 +219,29 @@ async fn handle_ai_chat_ws(socket: axum::extract::ws::WebSocket, state: AppState
                         };
 
                         // Call AI with streaming
-                        tokio::spawn(async move {
-                            match ai_service.chat(ai_request).await {
-                                Ok(response) => {
-                                    let resp_msg = serde_json::json!({
-                                        "type": "response",
-                                        "session_id": session_id,
-                                        "content": response.content,
-                                        "model": response.model_used,
-                                        "response_time_ms": response.response_time_ms,
-                                    });
-                                    let _ = sender
-                                        .send(axum::extract::ws::Message::Text(
-                                            resp_msg.to_string(),
-                                        ))
-                                        .await;
-                                }
-                                Err(e) => {
-                                    let err_msg = serde_json::json!({
-                                        "type": "error",
-                                        "error": e.to_string(),
-                                    });
-                                    let _ = sender
-                                        .send(axum::extract::ws::Message::Text(err_msg.to_string()))
-                                        .await;
-                                }
+                        match ai_service.chat(ai_request).await {
+                            Ok(response) => {
+                                let resp_msg = serde_json::json!({
+                                    "type": "response",
+                                    "session_id": session_id,
+                                    "content": response.content,
+                                    "model": response.model_used,
+                                    "response_time_ms": response.response_time_ms,
+                                });
+                                let _ = sender
+                                    .send(axum::extract::ws::Message::Text(resp_msg.to_string()))
+                                    .await;
                             }
-                        });
+                            Err(e) => {
+                                let err_msg = serde_json::json!({
+                                    "type": "error",
+                                    "error": e.to_string(),
+                                });
+                                let _ = sender
+                                    .send(axum::extract::ws::Message::Text(err_msg.to_string()))
+                                    .await;
+                            }
+                        }
                     }
                     Err(e) => {
                         let err_msg = serde_json::json!({
@@ -279,7 +275,7 @@ pub async fn analyze_contract_handler(
     })?;
 
     let contract_uuid = Uuid::parse_str(&contract_id)
-        .map_err(|_| ApiError::bad_request("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
+        .map_err(|_| ApiError::bad_request_with("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
 
     // Fetch contract code from source storage
     let contract_code = sqlx::query_scalar!(
@@ -296,12 +292,10 @@ pub async fn analyze_contract_handler(
         ApiError::not_found("CONTRACT_NOT_FOUND", "Contract or source code not found")
     })?;
 
-    // Get contract metadata
-    let contract = sqlx::query_as!(
-        shared::models::Contract,
+    let contract: shared::models::Contract = sqlx::query_as(
         "SELECT * FROM contracts WHERE id = $1",
-        contract_uuid
     )
+    .bind(contract_uuid)
     .fetch_optional(&state.db)
     .await
     .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "DB_ERROR", e.to_string()))?
@@ -367,7 +361,7 @@ pub async fn check_vulnerabilities_handler(
     })?;
 
     let contract_uuid = Uuid::parse_str(&contract_id)
-        .map_err(|_| ApiError::bad_request("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
+        .map_err(|_| ApiError::bad_request_with("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
 
     let contract_code = sqlx::query_scalar!(
         "SELECT source_code FROM verifications 
@@ -427,7 +421,7 @@ pub async fn explain_contract_handler(
     })?;
 
     let contract_uuid = Uuid::parse_str(&contract_id)
-        .map_err(|_| ApiError::bad_request("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
+        .map_err(|_| ApiError::bad_request_with("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
 
     let contract_code = sqlx::query_scalar!(
         "SELECT source_code FROM verifications 
@@ -487,7 +481,7 @@ pub async fn suggest_code_handler(
     })?;
 
     let contract_uuid = Uuid::parse_str(&contract_id)
-        .map_err(|_| ApiError::bad_request("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
+        .map_err(|_| ApiError::bad_request_with("INVALID_CONTRACT_ID", "Invalid contract ID format"))?;
 
     let contract_code = sqlx::query_scalar!(
         "SELECT source_code FROM verifications 
@@ -545,7 +539,7 @@ pub async fn get_chat_sessions_handler(
     let context_manager = ContextManager::new(state.db.clone());
     let user_id = params
         .user_id
-        .ok_or_else(|| ApiError::bad_request("MISSING_USER_ID", "user_id is required"))?;
+        .ok_or_else(|| ApiError::bad_request_with("MISSING_USER_ID", "user_id is required"))?;
 
     let sessions = context_manager
         .get_user_sessions(user_id, params.limit.unwrap_or(20))

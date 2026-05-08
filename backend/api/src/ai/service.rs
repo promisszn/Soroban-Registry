@@ -131,8 +131,11 @@ impl AIService {
     pub async fn chat(&self, request: AIRequest) -> Result<AIResponse> {
         let start_time = std::time::Instant::now();
 
-        let model = request.model.unwrap_or(self.config.default_model.clone());
-        let messages = self.build_messages(request)?;
+        let model = request
+            .model
+            .clone()
+            .unwrap_or(self.config.default_model.clone());
+        let messages = self.build_messages(&request)?;
 
         let response = match self.config.provider {
             AIProvider::OpenAI => {
@@ -156,7 +159,7 @@ impl AIService {
         })
     }
 
-    fn build_messages(&self, request: AIRequest) -> Result<Vec<ChatMessage>> {
+    fn build_messages(&self, request: &AIRequest) -> Result<Vec<ChatMessage>> {
         let mut messages = Vec::new();
 
         // Add system prompt if there's contract context
@@ -184,7 +187,7 @@ impl AIService {
         }
 
         // Add user messages
-        messages.extend(request.messages);
+        messages.extend(request.messages.clone());
 
         Ok(messages)
     }

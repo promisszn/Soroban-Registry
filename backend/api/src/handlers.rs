@@ -210,14 +210,14 @@ async fn require_multisig_approval_for_sensitive_update(
 
 #[allow(dead_code)]
 fn map_json_rejection(err: JsonRejection) -> ApiError {
-    ApiError::bad_request(
+    ApiError::bad_request_with(
         "InvalidRequest",
         format!("Invalid JSON payload: {}", err.body_text()),
     )
 }
 
 fn map_query_rejection(err: QueryRejection) -> ApiError {
-    ApiError::bad_request(
+    ApiError::bad_request_with(
         "InvalidQuery",
         format!("Invalid query parameters: {}", err.body_text()),
     )
@@ -605,7 +605,7 @@ fn validate_contract_list_pagination(
 ) -> Result<(i64, i64, i64), ApiError> {
     let limit = params.limit.unwrap_or(DEFAULT_CONTRACT_LIST_LIMIT);
     if !(1..=MAX_CONTRACT_LIST_LIMIT).contains(&limit) {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "InvalidPaginationLimit",
             format!(
                 "Invalid `limit` value {limit}. Expected an integer between 1 and {MAX_CONTRACT_LIST_LIMIT}."
@@ -615,7 +615,7 @@ fn validate_contract_list_pagination(
 
     if let Some(offset) = params.offset {
         if offset < 0 {
-            return Err(ApiError::bad_request(
+            return Err(ApiError::bad_request_with(
                 "InvalidPaginationOffset",
                 format!("Invalid `offset` value {offset}. Expected a non-negative integer."),
             ));
@@ -821,7 +821,7 @@ fn parse_interaction_type(
     );
 
     if !valid {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "InvalidInteractionType",
             format!(
                 "interaction_type '{}' is invalid; expected one of: deploy, invoke, transfer, query, publish_success, publish_failed",
@@ -6795,7 +6795,7 @@ fn apply_condition<'a>(
         "publisher" => "c.publisher_id",
         "tag" => "t.name",
         _ => {
-            return Err(ApiError::bad_request(
+            return Err(ApiError::bad_request_with(
                 "InvalidField",
                 format!("Field '{}' is not searchable", cond.field),
             ))
@@ -6804,7 +6804,7 @@ fn apply_condition<'a>(
 
     let string_value = || {
         cond.value.as_str().ok_or_else(|| {
-            ApiError::bad_request(
+            ApiError::bad_request_with(
                 "InvalidValue",
                 format!(
                     "Field '{}' expects a string value for operator '{:?}'",
@@ -6820,7 +6820,7 @@ fn apply_condition<'a>(
             builder.push(" = ");
             if cond.field == "verified" {
                 let value = cond.value.as_bool().ok_or_else(|| {
-                    ApiError::bad_request(
+                    ApiError::bad_request_with(
                         "InvalidValue",
                         "Field 'verified' expects a boolean value",
                     )
@@ -6834,7 +6834,7 @@ fn apply_condition<'a>(
             builder.push(" != ");
             if cond.field == "verified" {
                 let value = cond.value.as_bool().ok_or_else(|| {
-                    ApiError::bad_request(
+                    ApiError::bad_request_with(
                         "InvalidValue",
                         "Field 'verified' expects a boolean value",
                     )
@@ -6855,7 +6855,7 @@ fn apply_condition<'a>(
         FieldOperator::In => {
             builder.push(" IN (");
             let arr = cond.value.as_array().ok_or_else(|| {
-                ApiError::bad_request(
+                ApiError::bad_request_with(
                     "InvalidValue",
                     format!(
                         "Field '{}' expects an array value for operator 'in'",
@@ -6868,7 +6868,7 @@ fn apply_condition<'a>(
             for val in arr {
                 if cond.field == "verified" {
                     let b = val.as_bool().ok_or_else(|| {
-                        ApiError::bad_request(
+                        ApiError::bad_request_with(
                             "InvalidValue",
                             "Field 'verified' expects a boolean array value",
                         )
@@ -6876,7 +6876,7 @@ fn apply_condition<'a>(
                     separated.push_bind(b);
                 } else {
                     let s = val.as_str().ok_or_else(|| {
-                        ApiError::bad_request(
+                        ApiError::bad_request_with(
                             "InvalidValue",
                             format!("Field '{}' expects a string array value", cond.field),
                         )

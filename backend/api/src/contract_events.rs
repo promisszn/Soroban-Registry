@@ -379,7 +379,7 @@ pub async fn contracts_websocket(
         None
     };
 
-    ws.on_upgrade(move |socket| handle_socket(state, socket, filter, claims, auth_warning));
+    ws.on_upgrade(move |socket| handle_socket(state, socket, filter, claims, auth_warning))
 }
 
 fn authenticate_connection(

@@ -1,17 +1,6 @@
 -- Add verification_status column and verification_events audit trail
-BEGIN;
-
 -- Add 'unverified' value to verification_status enum if it doesn't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_type t
-        JOIN pg_enum e ON t.oid = e.enumtypid
-        WHERE t.typname = 'verification_status' AND e.enumlabel = 'unverified'
-    ) THEN
-        ALTER TYPE verification_status ADD VALUE 'unverified';
-    END IF;
-END$$;
+ALTER TYPE verification_status ADD VALUE IF NOT EXISTS 'unverified';
 
 -- Add columns to contracts
 ALTER TABLE contracts
@@ -70,4 +59,3 @@ CREATE TRIGGER trg_log_verification_event
 AFTER UPDATE ON contracts
 FOR EACH ROW EXECUTE FUNCTION log_verification_event();
 
-COMMIT;

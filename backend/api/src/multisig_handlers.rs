@@ -397,7 +397,7 @@ pub async fn sign_proposal(
     Json(payload): Json<SignProposalRequest>,
 ) -> ApiResult<Json<SignProposalResponse>> {
     let proposal_id = Uuid::parse_str(&id).map_err(|_| {
-        ApiError::bad_request("InvalidProposalId", "proposal id must be a valid UUID")
+        ApiError::bad_request_with("InvalidProposalId", "proposal id must be a valid UUID")
     })?;
 
     if payload.signer_address.trim().is_empty() {
@@ -652,7 +652,7 @@ pub async fn execute_proposal(
     Path(id): Path<String>,
 ) -> ApiResult<Json<ExecuteProposalResponse>> {
     let proposal_id = Uuid::parse_str(&id).map_err(|_| {
-        ApiError::bad_request("InvalidProposalId", "proposal id must be a valid UUID")
+        ApiError::bad_request_with("InvalidProposalId", "proposal id must be a valid UUID")
     })?;
 
     let mut tx = state.db.begin().await.map_err(|e| {
@@ -737,7 +737,7 @@ pub async fn proposal_info(
     Path(id): Path<String>,
 ) -> ApiResult<Json<ProposalInfoResponse>> {
     let proposal_id = Uuid::parse_str(&id).map_err(|_| {
-        ApiError::bad_request("InvalidProposalId", "proposal id must be a valid UUID")
+        ApiError::bad_request_with("InvalidProposalId", "proposal id must be a valid UUID")
     })?;
 
     let proposal = sqlx::query_as::<_, DeployProposal>(
@@ -898,7 +898,7 @@ pub async fn list_publisher_keys(
     Path(id): Path<String>,
 ) -> ApiResult<Json<Vec<PublisherMultisigKey>>> {
     let publisher_id = Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("InvalidPublisherId", "publisher id must be a UUID"))?;
+        .map_err(|_| ApiError::bad_request_with("InvalidPublisherId", "publisher id must be a UUID"))?;
 
     let exists: Option<Uuid> = sqlx::query_scalar("SELECT id FROM publishers WHERE id = $1")
         .bind(publisher_id)
@@ -941,7 +941,7 @@ pub async fn create_publisher_key(
     Json(payload): Json<CreatePublisherKeyRequest>,
 ) -> ApiResult<Json<PublisherMultisigKey>> {
     let publisher_id = Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("InvalidPublisherId", "publisher id must be a UUID"))?;
+        .map_err(|_| ApiError::bad_request_with("InvalidPublisherId", "publisher id must be a UUID"))?;
 
     if payload.key_name.trim().is_empty() {
         return Err(ApiError::bad_request(
@@ -997,7 +997,7 @@ pub async fn deactivate_publisher_key(
     Path(id): Path<String>,
 ) -> ApiResult<Json<PublisherMultisigKey>> {
     let key_id = Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("InvalidKeyId", "key id must be a UUID"))?;
+        .map_err(|_| ApiError::bad_request_with("InvalidKeyId", "key id must be a UUID"))?;
 
     let row = sqlx::query_as::<_, PublisherMultisigKey>(
         "UPDATE publisher_multisig_keys

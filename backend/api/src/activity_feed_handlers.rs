@@ -28,7 +28,7 @@ pub async fn get_activity_feed(
         query_builder.push_bind(cursor);
     }
 
-    if let Some(event_type) = params.event_type {
+    if let Some(ref event_type) = params.event_type {
         query_builder.push(" AND event_type = ");
         query_builder.push_bind(event_type);
     }
@@ -51,7 +51,7 @@ pub async fn get_activity_feed(
     let mut count_builder: QueryBuilder<sqlx::Postgres> =
         QueryBuilder::new("SELECT COUNT(*) FROM analytics_events WHERE 1=1");
 
-    if let Some(event_type) = params.event_type {
+    if let Some(ref event_type) = params.event_type {
         count_builder.push(" AND event_type = ");
         count_builder.push_bind(event_type);
     }

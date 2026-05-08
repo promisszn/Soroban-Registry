@@ -30,7 +30,7 @@ pub async fn get_contract_interoperability(
     Path(id): Path<String>,
 ) -> ApiResult<Json<ContractInteroperabilityResponse>> {
     let contract_id = Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("InvalidContractId", format!("Invalid ID: {id}")))?;
+        .map_err(|_| ApiError::bad_request_with("InvalidContractId", format!("Invalid ID: {id}")))?;
 
     interoperability::analyze_contract_interoperability(&state.db, contract_id)
         .await

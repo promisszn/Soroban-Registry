@@ -4,11 +4,11 @@
 //! that need validation when received from clients.
 
 use shared::models::{
-    AdvancedSearchRequest, ChangePublisherRequest, ContractExportRequest, ContractImportRequest,
-    CreateContractVersionRequest, CreateInteractionBatchRequest, CreateInteractionRequest,
-    CreateMigrationRequest, DependencyDeclaration, PublishRequest, Publisher,
-    SaveFavoriteSearchRequest, UpdateContractMetadataRequest, UpdateContractStatusRequest,
-    UpdateMigrationStatusRequest, VerifyRequest,
+    AdvancedSearchRequest, BulkStatusUpdateRequest, ChangePublisherRequest, ContractExportRequest,
+    ContractImportRequest, CreateContractVersionRequest, CreateInteractionBatchRequest,
+    CreateInteractionRequest, CreateMigrationRequest, DependencyDeclaration, PublishRequest,
+    Publisher, SaveFavoriteSearchRequest, UpdateContractMetadataRequest,
+    UpdateContractStatusRequest, UpdateMigrationStatusRequest, VerifyRequest,
 };
 
 use super::extractors::{FieldError, Validatable, ValidationBuilder};
@@ -521,6 +521,50 @@ impl Validatable for UpdateContractStatusRequest {
         if let Some(ref msg) = self.error_message {
             builder.check("error_message", || validate_no_xss(msg));
         }
+        builder.build()
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BulkStatusUpdateRequest validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+impl Validatable for BulkStatusUpdateRequest {
+    fn sanitize(&mut self) {
+        for item in &mut self.items {
+            item.status = trim(&item.status).to_lowercase();
+            if let Some(ref mut msg) = item.error_message {
+                *msg = trim(msg);
+                if msg.is_empty() {
+                    item.error_message = None;
+                }
+            }
+        }
+    }
+
+    fn validate(&self) -> Result<(), Vec<FieldError>> {
+        let mut builder = ValidationBuilder::new();
+
+        builder.check("items", || {
+            if self.items.is_empty() {
+                return Err("at least one item is required".to_string());
+            }
+            Ok(())
+        });
+
+        for (index, item) in self.items.iter().enumerate() {
+            builder.check(&format!("items[{index}].status"), || {
+                match item.status.as_str() {
+                    "pending" | "verified" | "failed" => Ok(()),
+                    _ => Err("status must be pending, verified, or failed".to_string()),
+                }
+            });
+
+            if let Some(ref msg) = item.error_message {
+                builder.check(&format!("items[{index}].error_message"), || validate_no_xss(msg));
+            }
+        }
+
         builder.build()
     }
 }

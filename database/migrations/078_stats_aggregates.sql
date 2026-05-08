@@ -9,7 +9,7 @@ SELECT
     COUNT(DISTINCT publisher_id) as total_publishers,
     COUNT(*) FILTER (WHERE is_verified = TRUE) as verified_contracts,
     ROUND(
-        (COUNT(*) FILTER (WHERE is_verified = TRUE)::numeric / COUNT(*) * 100), 
+        (COUNT(*) FILTER (WHERE is_verified = TRUE)::numeric / NULLIF(COUNT(*), 0) * 100), 
         2
     ) as verification_percentage,
     COUNT(DISTINCT category) as total_categories,
@@ -29,7 +29,7 @@ SELECT
     COUNT(*) as contract_count,
     COUNT(*) FILTER (WHERE is_verified = TRUE) as verified_count,
     ROUND(
-        (COUNT(*) FILTER (WHERE is_verified = TRUE)::numeric / COUNT(*) * 100), 
+        (COUNT(*) FILTER (WHERE is_verified = TRUE)::numeric / NULLIF(COUNT(*), 0) * 100), 
         2
     ) as verification_rate,
     COUNT(DISTINCT publisher_id) as publisher_count,
@@ -48,7 +48,7 @@ SELECT
     COUNT(*) as contract_count,
     COUNT(*) FILTER (WHERE is_verified = TRUE) as verified_count,
     ROUND(
-        (COUNT(*) FILTER (WHERE is_verified = TRUE)::numeric / COUNT(*) * 100), 
+        (COUNT(*) FILTER (WHERE is_verified = TRUE)::numeric / NULLIF(COUNT(*), 0) * 100), 
         2
     ) as verification_rate,
     COUNT(DISTINCT publisher_id) as publisher_count,
@@ -64,14 +64,14 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS mv_top_contracts AS
 SELECT 
     c.id,
     c.name,
-    c.slug,
+    c.contract_id as slug,
     c.contract_id,
     c.network,
     c.is_verified,
     COALESCE(ci.interaction_count, 0) as total_interactions,
     COALESCE(ci.unique_users, 0) as unique_users,
     c.created_at,
-    c.verified_at
+    NULL::timestamptz as verified_at
 FROM contracts c
 LEFT JOIN (
     SELECT 
@@ -114,7 +114,7 @@ SELECT
     COUNT(DISTINCT ct.contract_id) FILTER (WHERE c.is_verified = TRUE) as verified_contract_count,
     ROUND(
         (COUNT(DISTINCT ct.contract_id) FILTER (WHERE c.is_verified = TRUE)::numeric 
-         / COUNT(DISTINCT ct.contract_id) * 100), 
+         / NULLIF(COUNT(DISTINCT ct.contract_id), 0) * 100), 
         2
     ) as verification_rate
 FROM tags t

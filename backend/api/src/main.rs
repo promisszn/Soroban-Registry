@@ -1,94 +1,10 @@
 #![warn(unused_imports)]
 
-mod ai;
-mod search_postgres;
-mod state_monitor;
-mod stats;
-
-mod ab_test_handlers;
-mod abi_versioning_handlers;
-mod aggregation;
-mod analytics;
-mod analytics_handlers;
-mod auth;
-mod auth_handlers;
-mod backup_handlers;
-mod backup_routes;
-mod batch_verify_handlers;
-mod breaking_changes;
-mod bulk_operations_handlers;
-mod cache;
-mod canary_handlers;
-mod collaborative_reviews;
-mod compatibility_testing_handlers;
-mod contract_events;
-mod contributor_handlers;
-mod custom_metrics_handlers;
-mod db_monitoring;
-mod deprecation_handlers;
-mod disaster_recovery_models;
-mod error;
-mod error_logging;
-mod formal_verification;
-mod formal_verification_handlers;
-mod gas_estimation_handlers;
-mod governance_handlers;
-mod graph_analysis;
-mod graph_analysis_handlers;
-mod graphql;
-mod handlers;
-mod health_monitor;
-#[cfg(test)]
-mod health_tests;
-mod incident_handlers;
-mod incident_routes;
-mod metrics;
-mod metrics_handler;
-mod migration_handlers;
-mod models;
-mod multisig_handlers;
-mod multisig_routes;
-mod mutation_testing_handlers;
-mod notification_handlers;
-mod notification_routes;
-mod onchain_verification;
-#[cfg(feature = "openapi")]
-mod openapi;
-mod org_handlers;
-mod pagination;
-mod patch_handlers;
-mod performance_handlers;
-mod plugin_marketplace_handlers;
-mod post_incident_handlers;
-mod post_incident_routes;
-mod publisher_verification_handlers;
-mod quota_handlers;
-mod recommendation_handlers;
-mod release_notes_handlers;
-mod release_notes_routes;
-mod request_tracing;
-mod resource_handlers;
-mod resource_tracking;
-mod routes;
-mod search_client;
-mod security_scan_handlers;
-mod similarity_handlers;
-mod simulation;
-mod simulation_handlers;
-mod subscription_handlers;
-mod usage_counter;
-mod validation;
-mod verification_handlers;
-mod webhook_delivery;
-mod websocket;
-mod zk_proof_handlers;
-
 use anyhow::Result;
 use axum::extract::{Request, State};
 use axum::http::{header, HeaderName, HeaderValue, Method, StatusCode};
 use axum::middleware;
 use axum::response::Response;
-use dotenv::dotenv;
 use prometheus::Registry;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -97,9 +13,26 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
+use tracing::{error, info, warn};
 
-use crate::ai::service::AIService;
-use crate::state_monitor::StateMonitorService;
+use api::aggregation;
+use api::ai::service::AIService;
+use api::config;
+use api::db_monitoring;
+use api::error::ApiError;
+use api::graphql;
+use api::handlers;
+use api::health_monitor;
+use api::migration_handlers;
+use api::metrics;
+use api::rate_limit::RateLimitState;
+use api::rate_limit;
+use api::request_tracing;
+use api::routes;
+use api::state::AppState;
+use api::state_monitor::StateMonitorService;
+use api::validation;
+use api::webhook_delivery;
 
 async fn track_in_flight_middleware(
     State(state): State<AppState>,
@@ -113,9 +46,9 @@ async fn track_in_flight_middleware(
             "Service is shutting down and temporarily unavailable",
         ));
     }
-    api::metrics::HTTP_IN_FLIGHT.inc();
+    metrics::HTTP_IN_FLIGHT.inc();
     let res = next.run(req).await;
-    api::metrics::HTTP_IN_FLIGHT.dec();
+    metrics::HTTP_IN_FLIGHT.dec();
     Ok(res)
 }
 
@@ -184,14 +117,6 @@ async fn main() -> Result<()> {
     // let job_engine = Arc::new(job_engine);
     // tokio::spawn(async move { job_engine.clone().run_worker(job_rx).await });
 
-    // Create app state
-    let is_shutting_down = Arc::new(AtomicBool::new(false));
-    // Job engine: initialize for background batch processing
-    let (job_engine, job_rx) = soroban_batch::engine::JobEngine::new();
-    let job_engine = Arc::new(job_engine);
-    let je = job_engine.clone();
-    tokio::spawn(async move { je.run_worker(job_rx).await });
-
     // Issue #727: create rate limiter before AppState so it can be shared
     let rate_limit_state = std::sync::Arc::new(RateLimitState::from_env());
     rate_limit_state.spawn_eviction_task();
@@ -219,7 +144,7 @@ async fn main() -> Result<()> {
     let je = job_engine.clone();
     tokio::spawn(async move { je.run_worker(job_rx).await });
 
-    let state = AppState::new(
+    let mut state = AppState::new(
         pool.clone(),
         registry,
         job_engine,
@@ -241,7 +166,7 @@ async fn main() -> Result<()> {
     }
 
     // Initialize state monitor service (optional)
-    let state_monitor = match crate::state_monitor::StateMonitorService::new(
+    let _state_monitor = match StateMonitorService::new(
         pool.clone(),
         event_broadcaster.clone(),
     ) {
@@ -318,12 +243,12 @@ async fn main() -> Result<()> {
         .allow_headers([
             header::CONTENT_TYPE,
             header::AUTHORIZATION,
-            crate::request_tracing::X_REQUEST_ID.clone(),
-            crate::request_tracing::X_CORRELATION_ID.clone(),
+            request_tracing::X_REQUEST_ID.clone(),
+            request_tracing::X_CORRELATION_ID.clone(),
         ])
         .expose_headers([
-            crate::request_tracing::X_REQUEST_ID.clone(),
-            crate::request_tracing::X_CORRELATION_ID.clone(),
+            request_tracing::X_REQUEST_ID.clone(),
+            request_tracing::X_CORRELATION_ID.clone(),
             header::RETRY_AFTER,
             HeaderName::from_static("x-ratelimit-limit"),
             HeaderName::from_static("x-ratelimit-remaining"),
@@ -405,7 +330,7 @@ async fn main() -> Result<()> {
 
     if let Some(()) = rx.recv().await {
         is_shutting_down.store(true, Ordering::SeqCst);
-        let initial_in_flight = crate::metrics::HTTP_IN_FLIGHT.get();
+        let initial_in_flight = metrics::HTTP_IN_FLIGHT.get();
         tracing::info!(
             "Graceful shutdown initiated. In-flight requests: {}",
             initial_in_flight
@@ -421,7 +346,7 @@ async fn main() -> Result<()> {
 
         let mut success = false;
         loop {
-            let in_flight = crate::metrics::HTTP_IN_FLIGHT.get();
+            let in_flight = metrics::HTTP_IN_FLIGHT.get();
             if in_flight == 0 {
                 tracing::info!(
                     "All in-flight requests completed in {}ms. In-flight: 0",

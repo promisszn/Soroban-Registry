@@ -26,7 +26,7 @@ impl ContextManager {
             r#"
             INSERT INTO ai_chat_sessions (user_id, contract_id, context_type)
             VALUES ($1, $2, $3)
-            RETURNING id, user_id, contract_id, session_title, context_type, 
+            RETURNING id, user_id, contract_id, session_title, context_type as "context_type!", 
                       created_at, updated_at, message_count, is_active
             "#,
             user_id,
@@ -46,7 +46,7 @@ impl ContextManager {
     ) -> sqlx::Result<(ChatSession, Vec<ChatMessage>)> {
         let session = sqlx::query_as!(
             ChatSession,
-            "SELECT id, user_id, contract_id, session_title, context_type, created_at, updated_at, message_count, is_active FROM ai_chat_sessions WHERE id = $1",
+            "SELECT id, user_id, contract_id, session_title, context_type as \"context_type!\", created_at, updated_at, message_count, is_active FROM ai_chat_sessions WHERE id = $1",
             session_id
         )
         .fetch_one(&self.db)
@@ -113,7 +113,7 @@ impl ContextManager {
         let sessions = sqlx::query_as!(
             ChatSession,
             r#"
-            SELECT id, user_id, contract_id, session_title, context_type, 
+            SELECT id, user_id, contract_id, session_title, context_type as "context_type!", 
                    created_at, updated_at, message_count, is_active
             FROM ai_chat_sessions 
             WHERE user_id = $1 
@@ -121,7 +121,7 @@ impl ContextManager {
             LIMIT $2
             "#,
             user_id,
-            limit
+            limit as i64
         )
         .fetch_all(&self.db)
         .await?;
@@ -138,20 +138,20 @@ impl ContextManager {
             ContractContext,
             r#"
             SELECT 
-                c.id::text as contract_id,
-                c.name as contract_name,
-                c.slug,
-                c.description,
-                c.category,
+                c.id::text as "contract_id!",
+                c.name as "contract_name!",
+                ''::text as "contract_code!",
+                c.description as "description?",
+                c.category as "category?",
                 COALESCE(
-                    json_agg(t.name) FILTER (WHERE t.id IS NOT NULL),
-                    '[]'::jsonb
-                ) as tags
+                    array_agg(t.name) FILTER (WHERE t.id IS NOT NULL),
+                    ARRAY[]::text[]
+                ) as "tags!: Vec<String>"
             FROM contracts c
             LEFT JOIN contract_tags ct ON c.id = ct.contract_id
             LEFT JOIN tags t ON ct.tag_id = t.id
             WHERE c.id = $1
-            GROUP BY c.id, c.name, c.slug, c.description, c.category
+            GROUP BY c.id, c.name, c.description, c.category
             "#,
             contract_id
         )

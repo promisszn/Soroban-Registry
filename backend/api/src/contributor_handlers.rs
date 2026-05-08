@@ -58,7 +58,7 @@ pub async fn create_contributor(
     Json(req): Json<CreateContributorRequest>,
 ) -> impl IntoResponse {
     if req.stellar_address.is_empty() {
-        return ApiError::bad_request("InvalidRequest", "stellar_address is required")
+        return ApiError::bad_request_with("InvalidRequest", "stellar_address is required")
             .into_response();
     }
 

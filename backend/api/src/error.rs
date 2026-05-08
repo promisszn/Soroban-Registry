@@ -134,6 +134,14 @@ impl ApiError {
         Self::new(StatusCode::BAD_REQUEST, error, message)
     }
 
+    pub fn bad_request_with(error: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::new(StatusCode::BAD_REQUEST, error, message)
+    }
+
+    pub fn bad_request_msg(message: impl Into<String>) -> Self {
+        Self::new(StatusCode::BAD_REQUEST, "BAD_REQUEST", message)
+    }
+
     pub fn not_found(error: impl Into<String>, message: impl Into<String>) -> Self {
         Self::new(StatusCode::NOT_FOUND, error, message)
     }
@@ -168,6 +176,22 @@ impl ApiError {
 
     pub fn db_error(message: impl Into<String>) -> Self {
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, "DATABASE_ERROR", message)
+    }
+
+    pub fn internal_error(error: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::new(StatusCode::INTERNAL_SERVER_ERROR, error, message)
+    }
+
+    pub fn service_unavailable(message: impl Into<String>) -> Self {
+        Self::new(StatusCode::SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", message)
+    }
+
+    pub fn service_unavailable_with(error: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::new(StatusCode::SERVICE_UNAVAILABLE, error, message)
+    }
+
+    pub fn payload_too_large(message: impl Into<String>) -> Self {
+        Self::new(StatusCode::PAYLOAD_TOO_LARGE, "PAYLOAD_TOO_LARGE", message)
     }
 }
 
@@ -242,7 +266,7 @@ mod tests {
     #[tokio::test]
     async fn api_error_uses_standard_response_shape() {
         let response = ApiError::bad_request("INVALID_INPUT", "Invalid request payload")
-            .with_details(json!({ "field": "name" }))
+                .with_details(json!({ "field": "name" }))
             .into_response();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);

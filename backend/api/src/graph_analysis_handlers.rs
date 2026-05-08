@@ -22,7 +22,7 @@ use crate::{
     state::AppState,
 };
 use shared::{
-    CriticalContractScore, GraphAnalysisReport, GraphCluster, IssueSeverity,
+    CriticalContractScore, GraphAnalysisReport, IssueSeverity,
     VulnerabilityPropagationResult,
 };
 
@@ -133,7 +133,8 @@ pub async fn get_critical_contracts(
     Query(query): Query<CriticalContractsQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
-    let report = build_report(&state, query.network, false).await?;
+    let network = query.network.clone();
+    let report = build_report(&state, network.clone(), false).await?;
 
     let top: Vec<&CriticalContractScore> = report.critical_contracts.iter().take(limit).collect();
 
@@ -227,7 +228,8 @@ pub async fn get_subnetwork(
     Path(cluster_id): Path<usize>,
     Query(query): Query<GraphAnalysisQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let report = build_report(&state, query.network, false).await?;
+    let network = query.network.clone();
+    let report = build_report(&state, network.clone(), false).await?;
 
     let cluster = report
         .clusters
@@ -247,7 +249,7 @@ pub async fn get_subnetwork(
     // Cross-network edges within this cluster.
     let member_set: std::collections::HashSet<Uuid> = members.iter().copied().collect();
 
-    let graph = dependency::build_dependency_graph(&state.db, query.network)
+    let graph = dependency::build_dependency_graph(&state.db, network)
         .await
         .map_err(|e| ApiError::internal(format!("Failed to build graph: {}", e)))?;
 

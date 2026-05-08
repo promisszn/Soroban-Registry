@@ -112,7 +112,7 @@ impl PostgresSearchService {
                     placeholders.join(", ")
                 ));
                 for cat in cats {
-                    args.push(Box::new(cat.clone()));
+                    args.push(cat.clone());
                     param_index += 1;
                 }
             }
@@ -140,11 +140,10 @@ impl PostgresSearchService {
 
         if let Some(ref tags) = query.tags {
             if !tags.is_empty() {
-                sql.push_str(" AND EXISTS (SELECT 1 FROM contract_tags ct JOIN tags t ON ct.tag_id = t.id WHERE ct.contract_id = c.id AND t.name = ANY($");
+                sql.push_str(" AND EXISTS (SELECT 1 FROM contract_tags ct JOIN tags t ON ct.tag_id = t.id WHERE ct.contract_id = c.id AND t.name = ANY(string_to_array($");
                 sql.push_str(&param_index.to_string());
-                sql.push_str("))");
-                let tag_array = tags.clone();
-                args.push(tag_array);
+                sql.push_str(", ',')))");
+                args.push(tags.join(","));
                 param_index += 1;
             }
         }
@@ -269,7 +268,7 @@ pub async fn fulltext_search_handler(
 ) -> Result<Json<SearchResult>, ApiError> {
     let query = params.q.as_deref().unwrap_or("");
     if query.is_empty() {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "EMPTY_QUERY",
             "Search query cannot be empty",
         ));
@@ -277,7 +276,10 @@ pub async fn fulltext_search_handler(
 
     let search_req = SearchQuery {
         query: query.to_string(),
-        categories: params.category.as_ref().map(|c| vec![c.clone()]).flatten(),
+        categories: params
+            .category
+            .as_ref()
+            .map(|c| vec![c.clone()]),
         networks: params
             .network
             .as_ref()
@@ -291,7 +293,7 @@ pub async fn fulltext_search_handler(
                     })
                     .collect::<Vec<Network>>()
             })
-            .flatten(),
+                    ,
         verified_only: params.verified_only,
         tags: params
             .tags

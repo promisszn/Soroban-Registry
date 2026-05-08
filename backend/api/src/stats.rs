@@ -32,7 +32,7 @@ pub struct RegistryStats {
     pub generated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct TopContract {
     pub id: uuid::Uuid,
     pub name: String,
@@ -43,7 +43,7 @@ pub struct TopContract {
     pub unique_users: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct NetworkStats {
     pub network: Network,
     pub contract_count: i64,
@@ -53,7 +53,7 @@ pub struct NetworkStats {
     pub category_count: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct CategoryStats {
     pub category: String,
     pub contract_count: i64,

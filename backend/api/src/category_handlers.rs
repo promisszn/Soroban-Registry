@@ -148,7 +148,7 @@ fn db_err(op: &str, err: sqlx::Error) -> ApiError {
 
 fn parse_category_id(id: &str) -> ApiResult<Uuid> {
     Uuid::parse_str(id).map_err(|_| {
-        ApiError::bad_request(
+        ApiError::bad_request_with(
             "InvalidCategoryId",
             format!("Invalid category ID format: {}", id),
         )
@@ -160,7 +160,7 @@ fn parse_optional_parent_id(raw: &Option<String>) -> ApiResult<Option<Uuid>> {
         None => Ok(None),
         Some(s) if s.is_empty() => Ok(None),
         Some(s) => Uuid::parse_str(s).map(Some).map_err(|_| {
-            ApiError::bad_request(
+            ApiError::bad_request_with(
                 "InvalidParentId",
                 format!("Invalid parent category ID format: {}", s),
             )

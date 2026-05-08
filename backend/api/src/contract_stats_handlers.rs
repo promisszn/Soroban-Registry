@@ -79,7 +79,7 @@ impl std::str::FromStr for StatsPeriod {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ContractUsageStats {
     pub contract_id: Uuid,
     pub contract_name: String,
@@ -96,7 +96,7 @@ pub struct ContractUsageStats {
     pub error_rate: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct StatsTimeSeriesPoint {
     pub date: NaiveDate,
     pub deployments: i64,
@@ -106,7 +106,7 @@ pub struct StatsTimeSeriesPoint {
     pub unique_callers: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ContractStatsTimeSeriesResponse {
     pub contract_id: Uuid,
     pub contract_name: String,
@@ -116,7 +116,7 @@ pub struct ContractStatsTimeSeriesResponse {
     pub series: Vec<StatsTimeSeriesPoint>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct TrendingContractStats {
     pub contract_id: Uuid,
     pub name: String,
@@ -133,7 +133,7 @@ pub struct TrendingContractStats {
     pub rank: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct TrendingContractsResponse {
     pub period: String,
     pub total: i64,
@@ -379,7 +379,7 @@ fn parse_period(period: &Option<String>) -> ApiResult<StatsPeriod> {
     match period {
         Some(p) => p
             .parse::<StatsPeriod>()
-            .map_err(|e| ApiError::bad_request("INVALID_PERIOD", e.to_string())),
+            .map_err(|e| ApiError::bad_request_with("INVALID_PERIOD", e.to_string())),
         None => Ok(StatsPeriod::ThirtyDays),
     }
 }

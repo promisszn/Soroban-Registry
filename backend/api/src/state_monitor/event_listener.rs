@@ -113,6 +113,19 @@ impl EventListener {
             .await?;
 
             for change in changes {
+                let change = crate::state_monitor::StateChangeEntry {
+                    id: change.id,
+                    contract_id: change.contract_id,
+                    state_key: change.state_key,
+                    old_value: change.old_value,
+                    new_value: change.new_value,
+                    value_type: change.value_type,
+                    transaction_hash: change.transaction_hash,
+                    ledger_index: change.ledger_index,
+                    contract_version: change.contract_version,
+                    created_at: change.created_at,
+                    metadata: change.metadata,
+                };
                 // Convert to RealtimeEvent
                 let event = RealtimeEvent::MetadataUpdated {
                     contract_id: contract_id.clone(),

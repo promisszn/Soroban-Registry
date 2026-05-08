@@ -4347,6 +4347,19 @@ pub enum ZkCircuitLanguage {
     Halo2,
 }
 
+impl std::fmt::Display for ZkCircuitLanguage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ZkCircuitLanguage::Circom => "circom",
+            ZkCircuitLanguage::Noir => "noir",
+            ZkCircuitLanguage::Leo => "leo",
+            ZkCircuitLanguage::Cairo => "cairo",
+            ZkCircuitLanguage::Halo2 => "halo2",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 /// ZK proof validation status
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, utoipa::ToSchema, PartialEq)]
 #[sqlx(type_name = "zk_proof_status", rename_all = "lowercase")]
@@ -4492,7 +4505,7 @@ pub struct ZkCircuitStats {
 }
 
 /// Circuit summary (safe to expose publicly — omits circuit_source & verification_key)
-#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema, sqlx::FromRow)]
 pub struct ZkCircuitSummary {
     pub id: Uuid,
     pub contract_id: Uuid,

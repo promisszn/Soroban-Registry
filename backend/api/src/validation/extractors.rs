@@ -92,7 +92,7 @@ impl ValidationError {
 impl From<ValidationError> for crate::error::ApiError {
     fn from(err: ValidationError) -> Self {
         let summary = validation_summary(&err.errors);
-        crate::error::ApiError::bad_request("VALIDATION_ERROR", summary)
+        crate::error::ApiError::bad_request_with("VALIDATION_ERROR", summary)
             .with_details(json!({ "field_errors": err.errors }))
     }
 }

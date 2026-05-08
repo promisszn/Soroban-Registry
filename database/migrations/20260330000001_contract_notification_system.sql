@@ -36,8 +36,8 @@ CREATE TABLE contract_subscriptions (
     
     -- Subscription settings
     status subscription_status NOT NULL DEFAULT 'active',
-    notification_types notification_type[] NOT NULL DEFAULT ARRAY['new_version', 'verification_status', 'security_issue'],
-    channels notification_channel[] NOT NULL DEFAULT ARRAY['in_app'],
+    notification_types notification_type[] NOT NULL DEFAULT ARRAY['new_version', 'verification_status', 'security_issue']::notification_type[],
+    channels notification_channel[] NOT NULL DEFAULT ARRAY['in_app']::notification_channel[],
     frequency notification_frequency NOT NULL DEFAULT 'realtime',
     
     -- Filters for granular control
@@ -138,7 +138,7 @@ CREATE INDEX idx_notification_delivery_logs_status ON notification_delivery_logs
 -- Extend user preferences with notification settings
 ALTER TABLE user_preferences
     ADD COLUMN notification_frequency notification_frequency NOT NULL DEFAULT 'realtime',
-    ADD COLUMN notification_channels notification_channel[] DEFAULT ARRAY['in_app'],
+    ADD COLUMN notification_channels notification_channel[] DEFAULT ARRAY['in_app']::notification_channel[],
     ADD COLUMN email_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     ADD COLUMN webhook_url VARCHAR(500),
     ADD COLUMN webhook_secret_encrypted BYTEA,
@@ -460,46 +460,13 @@ CREATE TRIGGER trg_notify_security_issue
 -- Insert Default Notification Templates
 -- ═══════════════════════════════════════════════════════════════════════════
 
-INSERT INTO notification_templates (notification_type, subject_template, body_template, template_variables, email_subject_template, email_body_template, webhook_payload_template) VALUES
-    ('new_version', 
-     'New version {{version}} available for {{contract_name}}',
-     'A new version ({{version}}) of {{contract_name}} has been published.\n\nRelease notes: {{release_notes}}',
-     ARRAY['version', 'contract_name', 'release_notes'],
-     '🆕 New Version: {{contract_name}} v{{version}}',
-     '<h2>New Version Available</h2><p><strong>{{contract_name}}</strong> has released version <strong>{{version}}</strong>.</p><p>{{release_notes}}</p>',
-     '{"type": "new_version", "contract_id": "{{contract_id}}", "version": "{{version}}", "contract_name": "{{contract_name}}"}'),
-    
-    ('verification_status',
-     '{{contract_name}} verification status: {{status}}',
-     'The verification status of {{contract_name}} has been updated to {{status}}.\n\n{{notes}}',
-     ARRAY['contract_name', 'status', 'notes'],
-     '✅ Verification Update: {{contract_name}}',
-     '<h2>Verification Status Updated</h2><p><strong>{{contract_name}}</strong> is now <strong>{{status}}</strong>.</p><p>{{notes}}</p>',
-     '{"type": "verification_status", "contract_id": "{{contract_id}}", "status": "{{status}}", "contract_name": "{{contract_name}}"}'),
-    
-    ('security_issue',
-     '🚨 {{severity}} security issue in {{contract_name}}',
-     'A {{severity}} severity security issue has been detected in {{contract_name}}.\n\nTitle: {{issue_title}}\nDescription: {{description}}\n\nRemediation: {{remediation}}',
-     ARRAY['severity', 'contract_name', 'issue_title', 'description', 'remediation'],
-     '🚨 Security Alert: {{contract_name}}',
-     '<h2 style="color: red;">Security Issue Detected</h2><p><strong>Contract:</strong> {{contract_name}}</p><p><strong>Severity:</strong> {{severity}}</p><p><strong>Issue:</strong> {{issue_title}}</p><p>{{description}}</p><h3>Remediation</h3><p>{{remediation}}</p>',
-     '{"type": "security_issue", "contract_id": "{{contract_id}}", "issue_id": "{{issue_id}}", "severity": "{{severity}}", "title": "{{issue_title}}"}'),
-    
-    ('security_scan_completed',
-     'Security scan completed for {{contract_name}}',
-     'A security scan has completed for {{contract_name}}.\n\nResults: {{total_issues}} issues found ({{critical_issues}} critical, {{high_issues}} high)',
-     ARRAY['contract_name', 'total_issues', 'critical_issues', 'high_issues'],
-     '🔒 Scan Complete: {{contract_name}}',
-     '<h2>Security Scan Completed</h2><p><strong>{{contract_name}}</strong></p><ul><li>Total Issues: {{total_issues}}</li><li>Critical: {{critical_issues}}</li><li>High: {{high_issues}}</li></ul>',
-     '{"type": "security_scan_completed", "contract_id": "{{contract_id}}", "scan_id": "{{scan_id}}", "total_issues": "{{total_issues}}"}'),
-    
-    ('deprecation',
-     '{{contract_name}} has been deprecated',
-     '{{contract_name}} has been deprecated and will be retired on {{retirement_date}}.\n\nMigration guide: {{migration_guide}}',
-     ARRAY['contract_name', 'retirement_date', 'migration_guide'],
-     '⚠️ Deprecation Notice: {{contract_name}}',
-     '<h2>Deprecation Notice</h2><p><strong>{{contract_name}}</strong> has been deprecated.</p><p><strong>Retirement Date:</strong> {{retirement_date}}</p><p><a href="{{migration_guide}}">Migration Guide</a></p>',
-     '{"type": "deprecation", "contract_id": "{{contract_id}}", "retirement_date": "{{retirement_date}}"}');
+INSERT INTO notification_templates (name, subject, message_template, channel) VALUES
+    ('new_version', 'New version available for {{contract_name}}', 'A new version ({{version}}) of {{contract_name}} has been published.\n\nRelease notes: {{release_notes}}', 'in_app'),
+    ('verification_status', '{{contract_name}} verification status: {{status}}', 'The verification status of {{contract_name}} has been updated to {{status}}.\n\n{{notes}}', 'in_app'),
+    ('security_issue', 'Security issue detected in {{contract_name}}', 'A {{severity}} severity security issue has been detected in {{contract_name}}.\n\nTitle: {{issue_title}}\nDescription: {{description}}\n\nRemediation: {{remediation}}', 'in_app'),
+    ('security_scan_completed', 'Security scan completed for {{contract_name}}', 'A security scan has completed for {{contract_name}}.\n\nResults: {{total_issues}} issues found ({{critical_issues}} critical, {{high_issues}} high)', 'in_app'),
+    ('deprecation', '{{contract_name}} has been deprecated', '{{contract_name}} has been deprecated and will be retired on {{retirement_date}}.\n\nMigration guide: {{migration_guide}}', 'in_app')
+ON CONFLICT DO NOTHING;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Comments for Documentation

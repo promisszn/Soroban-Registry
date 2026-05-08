@@ -9,13 +9,9 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
-use crate::state::AppState;
 use crate::state_monitor::{anomaly_detector::AnomalyDetector, event_listener::EventListener};
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use uuid::Uuid;
 
 /// Service that manages contract state monitoring
@@ -49,7 +45,7 @@ impl StateMonitorService {
     /// Start the monitoring background task
     pub async fn run(self: Arc<Self>) -> Result<()> {
         tracing::info!("Starting state monitor service");
-        self.event_listener.run().await?;
+        self.event_listener.clone().run().await?;
         Ok(())
     }
 
@@ -105,7 +101,7 @@ impl StateMonitorService {
             LIMIT $2
             "#,
             uuid,
-            limit
+            limit as i64
         )
         .fetch_all(&self.db)
         .await?;
@@ -141,7 +137,7 @@ impl StateMonitorService {
                     "#,
                     cid,
                     sev,
-                    limit
+                    limit as i64
                 )
                 .fetch_all(&self.db)
                 .await?
@@ -162,7 +158,7 @@ impl StateMonitorService {
                     LIMIT $2
                     "#,
                     cid,
-                    limit
+                    limit as i64
                 )
                 .fetch_all(&self.db)
                 .await?
@@ -181,7 +177,7 @@ impl StateMonitorService {
                     LIMIT $2
                     "#,
                     sev,
-                    limit
+                    limit as i64
                 )
                 .fetch_all(&self.db)
                 .await?
@@ -198,7 +194,7 @@ impl StateMonitorService {
                     ORDER BY detected_at DESC
                     LIMIT $1
                     "#,
-                    limit
+                    limit as i64
                 )
                 .fetch_all(&self.db)
                 .await?

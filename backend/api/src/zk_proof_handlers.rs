@@ -40,7 +40,7 @@ use crate::{
 // Helper: reject invalid JSON payloads consistently
 // ─────────────────────────────────────────────────────────────────────────────
 fn map_json_rejection(err: axum::extract::rejection::JsonRejection) -> ApiError {
-    ApiError::bad_request(
+    ApiError::bad_request_with(
         "InvalidRequest",
         format!("Invalid JSON payload: {}", err.body_text()),
     )
@@ -65,25 +65,25 @@ pub async fn register_circuit(
 
     // ── Validate required fields ───────────────────────────────────────────
     if req.name.trim().is_empty() {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "MissingField",
             "circuit name is required",
         ));
     }
     if req.circuit_source.trim().is_empty() {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "MissingField",
             "circuit_source is required",
         ));
     }
     if req.verification_key.trim().is_empty() {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "MissingField",
             "verification_key is required (base64-encoded)",
         ));
     }
     if req.num_public_inputs < 0 {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "InvalidField",
             "num_public_inputs must be >= 0",
         ));
@@ -229,13 +229,13 @@ pub async fn submit_proof(
 
     // ── Validate inputs ────────────────────────────────────────────────────
     if req.proof_data.trim().is_empty() {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "MissingField",
             "proof_data is required",
         ));
     }
     if req.prover_address.trim().is_empty() {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "MissingField",
             "prover_address is required",
         ));
@@ -259,7 +259,7 @@ pub async fn submit_proof(
 
     // ── Validate public input count ────────────────────────────────────────
     if req.public_inputs.len() != circuit.num_public_inputs as usize {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
             "PublicInputMismatch",
             format!(
                 "Circuit expects {} public input(s), got {}",

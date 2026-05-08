@@ -41,7 +41,7 @@ pub struct VerificationHistoryQuery {
 }
 
 /// Current verification status for a contract
-#[derive(Debug, Serialize, utoipa::ToSchema)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct VerificationStatusResponse {
     pub contract_id: String,
     pub verification_status: String,

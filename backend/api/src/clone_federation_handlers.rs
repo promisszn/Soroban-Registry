@@ -110,7 +110,7 @@ pub async fn clone_contract(
     let tags_strings: Vec<String> = req
         .tags
         .as_ref()
-        .map(|tags| tags.iter().map(|t| t.name.clone()).collect())
+        .map(|tags| tags.iter().map(|t| t.clone()).collect())
         .unwrap_or_else(|| original.tags.iter().map(|t| t.name.clone()).collect());
 
     // Insert the cloned contract
@@ -357,7 +357,7 @@ pub async fn get_federated_registry(
     Path(id): Path<String>,
 ) -> ApiResult<Json<FederatedRegistry>> {
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("InvalidId", "Invalid registry ID format"))?;
+        .map_err(|_| ApiError::bad_request_with("InvalidId", "Invalid registry ID format"))?;
 
     let registry: FederatedRegistry =
         sqlx::query_as("SELECT * FROM federated_registries WHERE id = $1")
@@ -463,7 +463,7 @@ pub async fn get_sync_job_status(
     Path(job_id): Path<String>,
 ) -> ApiResult<Json<FederationSyncJob>> {
     let uuid = Uuid::parse_str(&job_id)
-        .map_err(|_| ApiError::bad_request("InvalidId", "Invalid job ID format"))?;
+        .map_err(|_| ApiError::bad_request_with("InvalidId", "Invalid job ID format"))?;
 
     let job: FederationSyncJob = sqlx::query_as("SELECT * FROM federation_sync_jobs WHERE id = $1")
         .bind(uuid)

@@ -378,7 +378,7 @@ pub async fn list_canary_metrics(
 
 fn parse_uuid(id: &str, label: &str) -> Result<Uuid, ApiError> {
     Uuid::parse_str(id).map_err(|_| {
-        ApiError::bad_request("InvalidId", format!("Invalid {} ID format: {}", label, id))
+        ApiError::bad_request_with("InvalidId", format!("Invalid {} ID format: {}", label, id))
     })
 }
 

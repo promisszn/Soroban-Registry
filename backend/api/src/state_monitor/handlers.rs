@@ -41,7 +41,7 @@ pub async fn get_state_history_handler(
     Query(params): Query<StateHistoryQuery>,
 ) -> Result<Json<StateHistoryResponse>, ApiError> {
     let monitor = state.state_monitor.as_ref().ok_or_else(|| {
-        ApiError::service_unavailable(
+        ApiError::service_unavailable_with(
             "STATE_MONITOR_DISABLED",
             "State monitor service is not enabled",
         )
@@ -58,7 +58,7 @@ pub async fn get_state_history_handler(
         sqlx::query_scalar("SELECT COUNT(*) FROM contract_state_history WHERE contract_id = $1")
             .bind(
                 Uuid::parse_str(&contract_id)
-                    .map_err(|_| ApiError::bad_request("INVALID_ID", "Invalid UUID"))?,
+                    .map_err(|_| ApiError::bad_request_with("INVALID_ID", "Invalid UUID"))?,
             )
             .fetch_one(&state.db)
             .await
@@ -77,7 +77,7 @@ pub async fn get_anomalies_handler(
     Query(params): Query<AnomaliesQuery>,
 ) -> Result<Json<AnomaliesResponse>, ApiError> {
     let monitor = state.state_monitor.as_ref().ok_or_else(|| {
-        ApiError::service_unavailable(
+        ApiError::service_unavailable_with(
             "STATE_MONITOR_DISABLED",
             "State monitor service is not enabled",
         )
@@ -106,7 +106,7 @@ pub async fn get_contract_anomalies_handler(
     Query(params): Query<AnomaliesQuery>,
 ) -> Result<Json<AnomaliesResponse>, ApiError> {
     let monitor = state.state_monitor.as_ref().ok_or_else(|| {
-        ApiError::service_unavailable(
+        ApiError::service_unavailable_with(
             "STATE_MONITOR_DISABLED",
             "State monitor service is not enabled",
         )
@@ -120,7 +120,7 @@ pub async fn get_contract_anomalies_handler(
         .map_err(|e| ApiError::internal_error("ANOMALY_ERROR", e.to_string()))?;
 
     let contract_uuid = Uuid::parse_str(&contract_id)
-        .map_err(|_| ApiError::bad_request("INVALID_ID", "Invalid UUID"))?;
+        .map_err(|_| ApiError::bad_request_with("INVALID_ID", "Invalid UUID"))?;
 
     let total: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM state_anomalies 
@@ -141,7 +141,7 @@ pub async fn resolve_anomaly_handler(
     Json(payload): Json<ResolveAnomalyRequest>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let monitor = state.state_monitor.as_ref().ok_or_else(|| {
-        ApiError::service_unavailable(
+        ApiError::service_unavailable_with(
             "STATE_MONITOR_DISABLED",
             "State monitor service is not enabled",
         )

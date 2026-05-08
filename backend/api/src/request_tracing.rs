@@ -22,6 +22,7 @@ use once_cell::sync::OnceCell;
 use opentelemetry::global;
 use opentelemetry::propagation::{Extractor, Injector};
 use opentelemetry::trace::TraceContextExt;
+use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
@@ -465,7 +466,7 @@ pub fn init_json_tracing() {
     if let Some(endpoint) = otlp_endpoint {
         let trace_config =
             opentelemetry_sdk::trace::Config::default().with_resource(Resource::new(vec![
-                KeyValue::new("service.name", service_name),
+                KeyValue::new("service.name", service_name.clone()),
             ]));
 
         match opentelemetry_otlp::new_pipeline()
@@ -479,7 +480,7 @@ pub fn init_json_tracing() {
             .install_batch(opentelemetry_sdk::runtime::Tokio)
         {
             Ok(provider) => {
-                let tracer = provider.tracer(&service_name);
+                let tracer = provider.tracer(service_name);
                 tracing_subscriber::registry()
                     .with(env_filter)
                     .with(fmt_layer)

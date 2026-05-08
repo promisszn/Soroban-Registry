@@ -6,9 +6,9 @@ use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde_json::Value;
 use shared::models::{
-    AlertSeverity, AuditActionType, Contract, ContractAuditLog,
-    ContractInteraction, ContractPerformanceSummaryResponse, ContractVersion, DependencyNode,
-    DependencyResponse, MetricType, Network, Organization, PerformanceAlert, PerformanceBenchmark,
+    AlertSeverity, AuditActionType, Contract, ContractAuditLog, ContractInteraction,
+    ContractPerformanceSummaryResponse, ContractVersion, DependencyNode, DependencyResponse,
+    MetricType, Network, Organization, PerformanceAlert, PerformanceBenchmark,
     PerformanceMetricSnapshot, PerformanceRegression, PerformanceTrendPoint, Publisher,
     VisibilityType,
 };
@@ -185,7 +185,7 @@ impl From<Contract> for ContractType {
             network: c.network,
             is_verified: c.is_verified,
             category: c.category,
-            tags: c.tags,
+            tags: c.tags.into_iter().map(|tag| tag.name).collect(),
             created_at: c.created_at,
             updated_at: c.updated_at,
             health_score: c.health_score,
@@ -513,14 +513,14 @@ impl From<ContractAuditLog> for AuditLogType {
     fn from(l: ContractAuditLog) -> Self {
         Self {
             id: l.id,
-            action_type: format!("{:?}", l.action_type),
-            actor: l.actor,
+            action_type: l.action_type.to_string(),
+            actor: l.changed_by,
             target_id: l.contract_id,
-            before_state: l.before_state,
-            after_state: l.after_state,
-            ip_address: l.ip_address,
-            user_agent: l.user_agent,
-            created_at: l.created_at,
+            before_state: l.old_value,
+            after_state: l.new_value,
+            ip_address: None,
+            user_agent: None,
+            created_at: l.timestamp,
         }
     }
 }
@@ -540,7 +540,7 @@ impl From<ContractInteraction> for InteractionType {
         Self {
             id: i.id,
             name: i.interaction_type,
-            details: i.details,
+            details: i.parameters.or(i.return_value),
             created_at: i.created_at,
         }
     }
@@ -578,18 +578,14 @@ impl From<ContractPerformanceSummaryResponse> for PerformanceSummaryType {
                 .into_iter()
                 .map(PerformanceMetricSnapshotType::from)
                 .collect(),
-            trends: s
-                .trend_points
-                .into_iter()
-                .map(PerformanceTrendPointType::from)
-                .collect(),
+            trends: s.trends.into_iter().map(PerformanceTrendPointType::from).collect(),
             regressions: s
                 .regressions
                 .into_iter()
                 .map(PerformanceRegressionType::from)
                 .collect(),
             unresolved_alerts: s
-                .recent_alerts
+                .unresolved_alerts
                 .into_iter()
                 .map(PerformanceAlertType::from)
                 .collect(),

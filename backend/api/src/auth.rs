@@ -8,8 +8,6 @@ use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-use uuid::Uuid;
-
 use crate::{error::ApiError, state::AppState};
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
@@ -28,6 +26,8 @@ pub struct AuthenticatedUser {
     pub stellar_address: String,
     /// Publisher UUID — parsed from sub if it is a UUID, otherwise nil
     pub publisher_id: uuid::Uuid,
+    /// Database user id (publisher primary key)
+    pub id: uuid::Uuid,
     /// Full claims for callers that need them
     pub claims: AuthClaims,
 }
@@ -61,6 +61,7 @@ where
         Ok(AuthenticatedUser {
             stellar_address: claims.sub.clone(),
             publisher_id,
+            id: publisher_id,
             claims,
         })
     }
@@ -199,49 +200,6 @@ impl AuthManager {
         decode::<AuthClaims>(token, &self.decoding_key, &validation)
             .map(|data| data.claims)
             .map_err(|_| "invalid_token")
-    }
-}
-
-#[axum::async_trait]
-impl FromRequestParts<AppState> for AuthenticatedUser {
-    type Rejection = ApiError;
-
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> Result<Self, ApiError> {
-        let auth_header = parts
-            .headers
-            .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| ApiError::unauthorized("Missing authorization header"))?;
-
-        if !auth_header.starts_with("Bearer ") {
-            return Err(ApiError::unauthorized(
-                "Invalid authorization header format",
-            ));
-        }
-
-        let token = &auth_header[7..];
-        let auth_manager = AuthManager::from_env()
-            .map_err(|_| ApiError::internal("Authentication configuration error"))?;
-
-        let claims = auth_manager
-            .validate_jwt(token)
-            .map_err(|_| ApiError::unauthorized("Invalid or expired token"))?;
-
-        // Resolve stellar address (sub) to publisher UUID
-        let user_id =
-            sqlx::query_scalar::<_, Uuid>("SELECT id FROM publishers WHERE stellar_address = $1")
-                .bind(&claims.sub)
-                .fetch_optional(&state.db)
-                .await?
-                .ok_or_else(|| ApiError::unauthorized("User not found in registry"))?;
-
-        Ok(AuthenticatedUser {
-            id: user_id,
-            claims,
-        })
     }
 }
 

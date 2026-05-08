@@ -95,7 +95,7 @@ pub async fn restore_backup(
     let start = std::time::Instant::now();
 
     let backup_date = NaiveDate::parse_from_str(&req.backup_date, "%Y-%m-%d")
-        .map_err(|_| ApiError::bad_request("invalid_date", "Invalid date format"))?;
+        .map_err(|_| ApiError::bad_request_with("invalid_date", "Invalid date format"))?;
 
     let backup = sqlx::query_as::<_, ContractBackup>(
         "SELECT * FROM contract_backups WHERE contract_id = $1 AND backup_date = $2",
@@ -140,7 +140,7 @@ pub async fn verify_backup(
     Path((contract_id, backup_date)): Path<(Uuid, String)>,
 ) -> ApiResult<StatusCode> {
     let date = NaiveDate::parse_from_str(&backup_date, "%Y-%m-%d")
-        .map_err(|_| ApiError::bad_request("invalid_date", "Invalid date format"))?;
+        .map_err(|_| ApiError::bad_request_with("invalid_date", "Invalid date format"))?;
 
     sqlx::query(
         "UPDATE contract_backups SET verified = true WHERE contract_id = $1 AND backup_date = $2",
@@ -256,7 +256,7 @@ pub async fn execute_recovery(
                 .ok_or_else(|| ApiError::not_found("backup", "No backups found for contract"))?
         } else {
             NaiveDate::parse_from_str(&target, "%Y-%m-%d")
-                .map_err(|_| ApiError::bad_request("invalid_date", "Invalid date format"))?
+                .map_err(|_| ApiError::bad_request_with("invalid_date", "Invalid date format"))?
         }
     } else {
         // Get the latest backup within RPO window
@@ -314,7 +314,7 @@ async fn restore_backup_from_date(
     let start = std::time::Instant::now();
 
     let backup_date = NaiveDate::parse_from_str(&req.backup_date, "%Y-%m-%d")
-        .map_err(|_| ApiError::bad_request("invalid_date", "Invalid date format"))?;
+        .map_err(|_| ApiError::bad_request_with("invalid_date", "Invalid date format"))?;
 
     let backup = sqlx::query_as::<_, ContractBackup>(
         "SELECT * FROM contract_backups WHERE contract_id = $1 AND backup_date = $2",

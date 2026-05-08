@@ -364,7 +364,7 @@ fn query_params_to_search_params(params: ContractExportQueryParams) -> ContractS
             "experimental" => shared::MaturityLevel::Experimental,
             "beta" => shared::MaturityLevel::Beta,
             "stable" => shared::MaturityLevel::Stable,
-            "deprecated" => shared::MaturityLevel::Deprecated,
+            "deprecated" => shared::MaturityLevel::Production,
             _ => shared::MaturityLevel::Experimental,
         }),
         verified_only: params.verified_only,
@@ -383,6 +383,11 @@ fn query_params_to_search_params(params: ContractExportQueryParams) -> ContractS
         verified_to: None,
         last_accessed_from: None,
         last_accessed_to: None,
+        w_text: None,
+        w_pop: None,
+        w_rec: None,
+        w_rat: None,
+        user_id: None,
     }
 }
 

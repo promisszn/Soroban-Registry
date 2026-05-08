@@ -872,13 +872,13 @@ pub(crate) async fn build_performance_summary_internal(
             .into_iter()
             .map(metric_snapshot_from_row)
             .collect(),
-        trend_points: trend_rows.into_iter().map(trend_from_row).collect(),
+        trends: trend_rows.into_iter().map(trend_from_row).collect(),
         regressions: regression_rows
             .into_iter()
             .map(regression_from_row)
             .collect(),
-        recent_anomalies: Vec::new(),
-        recent_alerts: unresolved_alerts,
+        comparisons: Vec::new(),
+        unresolved_alerts,
     })
 }
 
@@ -995,7 +995,7 @@ fn decimal_from_f64(value: f64) -> Decimal {
 
 fn parse_uuid(id: &str, label: &str) -> Result<Uuid, ApiError> {
     Uuid::parse_str(id).map_err(|_| {
-        ApiError::bad_request("InvalidId", format!("Invalid {} ID format: {}", label, id))
+        ApiError::bad_request_with("InvalidId", format!("Invalid {} ID format: {}", label, id))
     })
 }
 

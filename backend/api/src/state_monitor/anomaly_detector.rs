@@ -34,13 +34,14 @@ impl AnomalyDetector {
     pub async fn analyze_state_change(&self, change: &StateChangeEntry) -> Result<()> {
         for rule in &self.rules {
             if let Some(anomaly) = rule.check(change, &self.db).await? {
+                let anomaly_log = anomaly.clone();
                 // Save anomaly to database
                 self.record_anomaly(anomaly).await?;
                 info!(
                     "Anomaly detected: {} for contract {} key={}",
-                    anomaly.anomaly_type,
-                    anomaly.contract_id,
-                    anomaly.state_key.as_deref().unwrap_or("N/A")
+                    anomaly_log.anomaly_type,
+                    anomaly_log.contract_id,
+                    anomaly_log.state_key.as_deref().unwrap_or("N/A")
                 );
             }
         }

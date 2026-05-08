@@ -69,10 +69,10 @@ pub async fn get_breaking_changes(
     let new_abi = resolve_abi(&state, &query.new_id, bypass).await?;
 
     let old_spec = parse_json_spec(&old_abi, &query.old_id).map_err(|e| {
-        ApiError::bad_request("InvalidABI", format!("Failed to parse old ABI: {}", e))
+        ApiError::bad_request_with("InvalidABI", format!("Failed to parse old ABI: {}", e))
     })?;
     let new_spec = parse_json_spec(&new_abi, &query.new_id).map_err(|e| {
-        ApiError::bad_request("InvalidABI", format!("Failed to parse new ABI: {}", e))
+        ApiError::bad_request_with("InvalidABI", format!("Failed to parse new ABI: {}", e))
     })?;
 
     let changes = diff_abi(&old_spec, &new_spec);

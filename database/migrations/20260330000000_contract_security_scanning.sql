@@ -105,7 +105,7 @@ CREATE TABLE security_issues (
     -- Remediation
     remediation TEXT,
     remediation_code_example TEXT,
-    references TEXT[], -- Array of reference URLs
+    reference_urls TEXT[], -- Array of reference URLs
     
     -- Tracking
     external_issue_id VARCHAR(255), -- ID from external scanner

@@ -677,7 +677,8 @@ pub async fn create_webhook(
 ) -> ApiResult<Json<WebhookConfiguration>> {
     // Validate URL scheme — only https allowed in production.
     if !req.url.starts_with("https://") && !req.url.starts_with("http://localhost") {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
+            "InvalidWebhookUrl",
             "Webhook URL must use HTTPS (http://localhost is allowed for testing)",
         ));
     }
@@ -882,7 +883,8 @@ pub async fn retry_webhook_delivery(
     .rows_affected();
 
     if rows == 0 {
-        return Err(ApiError::bad_request(
+        return Err(ApiError::bad_request_with(
+            "InvalidDeliveryState",
             "Delivery is not in a failed state and cannot be retried",
         ));
     }
