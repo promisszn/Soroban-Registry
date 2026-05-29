@@ -908,7 +908,7 @@ pub enum Commands {
         /// Force a specific format (json, csv, archive); auto-detected if omitted
         #[arg(long)]
         format: Option<String>,
-        /// How to handle duplicates: skip, update, fail
+        /// How to handle duplicates: skip or fail
         #[arg(long, default_value = "skip")]
         on_duplicate: String,
         /// Preview what would be imported without committing

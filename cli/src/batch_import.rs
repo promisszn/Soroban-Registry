@@ -190,8 +190,8 @@ fn collect_import_files(input_dir: &str) -> Result<Vec<String>> {
 
 fn validate_on_duplicate_strategy(strategy: &str) -> Result<()> {
     anyhow::ensure!(
-        matches!(strategy, "skip" | "update" | "fail"),
-        "Invalid on-duplicate strategy: {}. Must be skip, update, or fail",
+        matches!(strategy, "skip" | "fail"),
+        "Invalid on-duplicate strategy: {}. Must be skip or fail",
         strategy
     );
     Ok(())

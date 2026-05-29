@@ -42,6 +42,12 @@ pub fn run_batch_audit(
         anyhow::bail!("No contract paths provided");
     }
 
+    anyhow::ensure!(
+        matches!(format, "text" | "json" | "markdown"),
+        "Invalid format: {}. Must be text, json, or markdown",
+        format
+    );
+
     if !json_out {
         println!("\n{}", "Batch Audit".bold().cyan());
         println!("{}", "=".repeat(80).cyan());
@@ -49,6 +55,9 @@ pub fn run_batch_audit(
         println!("Profile: {}", profile);
         if high_risk_only {
             println!("Filter: high-risk only");
+        }
+        if output_dir.is_some() {
+            println!("Output directory: {}", output_dir.unwrap().bright_black());
         }
         println!("{}", "-".repeat(80).cyan());
     }
@@ -132,16 +141,30 @@ pub fn run_batch_audit(
         write_export(&summary, export_path, format)?;
     }
 
+    if let Some(dir) = output_dir {
+        write_per_contract_reports(&summary, dir, format)?;
+    }
+
     if let Some(fail_severity) = fail_on {
         let threshold = fail_severity.parse::<Severity>()?;
         for result in &summary.results {
-            if matches!(result.risk_level.as_str(), "critical" | "high")
-                && matches!(threshold, Severity::High | Severity::Medium | Severity::Low)
-            {
+            let max_severity = if result.critical > 0 {
+                Severity::Critical
+            } else if result.high > 0 {
+                Severity::High
+            } else if result.medium > 0 {
+                Severity::Medium
+            } else if result.low > 0 {
+                Severity::Low
+            } else {
+                continue;
+            };
+
+            if max_severity >= threshold {
                 anyhow::bail!(
                     "Audit failed: contract {} has {} severity findings",
                     result.path,
-                    result.risk_level
+                    max_severity.as_str()
                 );
             }
         }
@@ -235,6 +258,66 @@ fn generate_recommendations(findings: &[AuditFinding], _profile: &str) -> Vec<St
     }
 
     recommendations
+}
+
+fn write_per_contract_reports(summary: &BatchAuditSummary, output_dir: &str, format: &str) -> Result<()> {
+    fs::create_dir_all(output_dir)
+        .with_context(|| format!("Failed to create output directory: {}", output_dir))?;
+
+    for result in &summary.results {
+        let file_name = Path::new(&result.path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("contract");
+
+        let ext = match format {
+            "json" => "json",
+            "markdown" | "md" => "md",
+            _ => "txt",
+        };
+
+        let report_path = Path::new(output_dir).join(format!("{}.{}", file_name, ext));
+        let content = format_contract_report(result, format);
+
+        fs::write(&report_path, content)
+            .with_context(|| format!("Failed to write report to {}", report_path.display()))?;
+    }
+
+    Ok(())
+}
+
+fn format_contract_report(result: &ContractAuditResult, format: &str) -> String {
+    match format {
+        "json" => serde_json::to_string_pretty(result).unwrap_or_default(),
+        "markdown" | "md" => {
+            let mut out = format!("# Audit Report: {}\n\n", result.path);
+            out.push_str(&format!("**Risk Level**: {}\n\n", result.risk_level));
+            out.push_str(&format!(
+                "- Critical: {}\n- High: {}\n- Medium: {}\n- Low: {}\n\n",
+                result.critical, result.high, result.medium, result.low
+            ));
+            if !result.recommendations.is_empty() {
+                out.push_str("## Recommendations\n\n");
+                for rec in &result.recommendations {
+                    out.push_str(&format!("- {}\n", rec));
+                }
+            }
+            out
+        }
+        _ => {
+            format!(
+                "Contract: {}\nRisk Level: {}\nFindings: {}\nCritical: {}, High: {}, Medium: {}, Low: {}\n\nRecommendations:\n{}",
+                result.path,
+                result.risk_level,
+                result.total_findings,
+                result.critical,
+                result.high,
+                result.medium,
+                result.low,
+                result.recommendations.join("\n")
+            )
+        }
+    }
 }
 
 fn emit_summary(summary: &BatchAuditSummary, json_out: bool) -> Result<()> {

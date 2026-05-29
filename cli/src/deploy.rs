@@ -156,7 +156,7 @@ fn execute_deployment(
     wasm: &str,
     network: &str,
     signer: &str,
-    params: &serde_json::Value,
+    _params: &serde_json::Value,
 ) -> Result<()> {
     println!(
         "{}",

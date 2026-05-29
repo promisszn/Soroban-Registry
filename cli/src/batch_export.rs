@@ -161,7 +161,7 @@ pub async fn run_batch_export(
     .with_context(|| format!("Failed to write manifest to {}", manifest_path.display()))?;
 
     if compress {
-        create_archive(output_dir, &results)?;
+        create_archive(output_dir, &results, json_out)?;
     }
 
     let summary = BatchExportSummary {
@@ -201,7 +201,7 @@ async fn fetch_all_contracts(
         }
 
         let response = client.get(url).send().await?;
-        let page: Value = response.json().await?;
+        let page: Value = response.error_for_status()?.json().await?;
 
         let items = page
             .get("items")
@@ -240,13 +240,15 @@ fn get_extension(format: RegistryExportFormat) -> &'static str {
     }
 }
 
-fn create_archive(output_dir: &str, _results: &[ExportResult]) -> Result<()> {
+fn create_archive(output_dir: &str, _results: &[ExportResult], json_out: bool) -> Result<()> {
     let archive_path = format!("{}-export.tar.gz", output_dir.trim_end_matches('/'));
-    println!(
-        "Compressing {} into {}...",
-        output_dir.bright_black(),
-        archive_path.bright_black()
-    );
+    if !json_out {
+        println!(
+            "Compressing {} into {}...",
+            output_dir.bright_black(),
+            archive_path.bright_black()
+        );
+    }
 
     use flate2::write::GzEncoder;
     use flate2::Compression;
@@ -259,8 +261,12 @@ fn create_archive(output_dir: &str, _results: &[ExportResult]) -> Result<()> {
 
     walk_dir_and_add(&mut builder, output_dir, output_dir)?;
 
-    builder.finish()?;
-    println!("{} Archive created: {}", "✓".green(), archive_path.bright_black());
+    let encoder = builder.into_inner()?;
+    encoder.finish()?;
+
+    if !json_out {
+        println!("{} Archive created: {}", "✓".green(), archive_path.bright_black());
+    }
 
     Ok(())
 }
@@ -278,7 +284,8 @@ fn walk_dir_and_add<W: std::io::Write>(
             let relative = path.strip_prefix(base_dir)?;
             builder.append_path_with_name(&path, relative)?;
         } else if path.is_dir() {
-            walk_dir_and_add(builder, base_dir, path.to_str().unwrap())?;
+            let dir_str = path.to_string_lossy();
+            walk_dir_and_add(builder, base_dir, &dir_str)?;
         }
     }
 
